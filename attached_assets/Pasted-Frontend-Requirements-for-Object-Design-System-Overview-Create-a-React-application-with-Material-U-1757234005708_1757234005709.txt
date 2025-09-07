@@ -1,0 +1,247 @@
+Frontend Requirements for Object Design System
+Overview
+Create a React application with Material-UI that provides a comprehensive interface for managing objects, their relationships, hierarchies, and includes AI-powered search capabilities.
+
+Tech Stack
+Frontend Framework: React 18+
+UI Library: Material-UI (MUI) v5+
+State Management: React Context API or Redux Toolkit
+HTTP Client: Axios
+PDF Generation: react-to-print or jsPDF
+Icons: Material-UI Icons
+Core Features
+1. Layout Structure
+Header (Fixed Top)
+Left Section:
+Explorer icon + "Object Explorer" text
+Search input field with "AIAsk" button (triggers AI search)
+Right Section:
+Company icon + "Company Name" text
+Styling: Fixed position, shadow, responsive design
+Main Content Area
+Left Sidebar (25% width): Object Explorer Tree
+
+Collapsible folders (representing object hierarchies)
+Objects listed under folders
+Expandable/collapsible nodes
+Click to select object and load in right panel
+Right Content Area (75% width):
+
+Top Action Bar:
+Create Object button
+Edit Object button
+Remove Object button
+Generate Report button
+Tab Navigation:
+Object Information tab
+Object Relations tab
+Object Hierarchy tab
+Content Display Area:
+Scrollable, printable content area
+Dynamic content based on selected tab
+2. Object Information Tab
+Object Cards Grid
+Display all objects as cards by default
+Each card shows:
+Object Name (bold, large text)
+Object Description (smaller text)
+Object Attributes (key-value pairs)
+Responsive grid layout (1-4 columns based on screen size)
+Search Results
+When user searches, display searched object card at top
+Below it show detailed object properties:
+Name-Value pairs in a clean table format
+Tables with proper headers and data
+Object Properties Display
+Properties Table:
+
+Two columns: Property Name | Property Value
+Support for different data types (string, int, double, lists)
+Clean MUI Table component
+Object Tables:
+
+Each table has a title
+Dynamic columns based on table definition
+Editable cells for data entry
+Add/remove rows functionality
+3. Object Relations Tab
+Relations Display
+Visual representation of object relationships
+Primary object in center
+Connected objects with relationship labels
+Clickable objects to navigate
+Support for different relation types (Item-to-Item, Item-to-Document, etc.)
+Relations Management
+Add new relations
+Edit existing relations
+Remove relations
+Relation type selection
+4. Object Hierarchy Tab
+Hierarchy Tree View
+Tree structure showing parent-child relationships
+Expandable/collapsible nodes
+Properties display for selected hierarchy level
+Associated tables for each level
+Hierarchy Management
+Add child objects
+Remove child objects
+Reorder hierarchy
+Edit hierarchy properties
+5. CRUD Operations
+Create Object
+Modal/Dialog form with:
+Object Name (required)
+Object Description (required)
+Object Type selection (Item/Document)
+Dynamic attribute fields
+Table creation interface
+Edit Object
+Pre-populated form with existing data
+Same fields as create
+Save changes functionality
+Delete Object
+Confirmation dialog
+Check for dependencies (relations, hierarchies)
+Cascade delete options
+6. AI Chatbot Integration
+Chat Interface
+Chat window overlay or separate page
+Message history
+Real-time responses
+Support for context-aware conversations
+Search Integration
+"AIAsk" button in header
+Natural language search queries
+Results displayed in main content area
+Chain of thoughts display
+Error handling and correction suggestions
+7. Report Generation
+Report Types
+Object Information Report
+Relations Report
+Hierarchy Report
+Custom reports
+PDF Generation
+Use printable content area
+Include all visible information
+Proper formatting and styling
+Download functionality
+Component Structure
+Main Components
+App.js - Main application component
+Header.js - Top navigation and search
+Sidebar.js - Object explorer tree
+ContentArea.js - Main content display
+ObjectCard.js - Individual object card
+PropertiesTable.js - Object properties display
+DataTable.js - Dynamic table component
+RelationsView.js - Object relations visualization
+HierarchyView.js - Object hierarchy tree
+ChatBot.js - AI chatbot interface
+CreateObjectDialog.js - Object creation form
+EditObjectDialog.js - Object editing form
+ReportGenerator.js - PDF report generation
+Supporting Components
+TreeNode.js - Individual tree node
+TabPanel.js - Tab content wrapper
+SearchResults.js - Search results display
+LoadingSpinner.js - Loading indicators
+ErrorBoundary.js - Error handling
+API Integration
+Backend Endpoints
+GET /api/objects - Get all objects
+POST /api/objects - Create object
+PUT /api/objects/{id} - Update object
+DELETE /api/objects/{id} - Delete object
+GET /api/objects/{id}/relations - Get object relations
+GET /api/objects/{id}/hierarchy - Get object hierarchy
+POST /api/search - AI-powered search
+POST /api/chat - Chatbot interaction
+GET /api/reports/{type} - Generate reports
+Data Models
+Object Model
+{
+  id: string,
+  name: string,
+  description: string,
+  type: 'Item' | 'Document',
+  attributes: {
+    [key: string]: string | number | boolean | string[] | number[]
+  },
+  tables: [
+    {
+      name: string,
+      columns: [
+        {
+          name: string,
+          type: 'string' | 'int' | 'double' | 'boolean'
+        }
+      ],
+      data: any[][]
+    }
+  ],
+  created_date: Date,
+  modified_date: Date,
+  revision: number
+}
+Relation Model
+{
+  id: string,
+  primary_object_id: string,
+  secondary_object_ids: string[],
+  relation_type: string,
+  description: string
+}
+Hierarchy Model
+{
+  id: string,
+  parent_object_id: string,
+  child_object_ids: string[],
+  level: number,
+  properties: object
+}
+Styling Guidelines
+Material-UI Theme
+Primary Color: #1976d2 (MUI Blue)
+Secondary Color: #dc004e (MUI Pink)
+Background: #f5f5f5
+Paper Background: #ffffff
+Responsive Design
+Desktop: Full layout with sidebar
+Tablet: Collapsible sidebar, stacked layout
+Mobile: Bottom navigation, single column
+Accessibility
+Proper ARIA labels
+Keyboard navigation
+High contrast mode support
+Screen reader compatibility
+Performance Considerations
+Optimization
+Lazy loading for large datasets
+Virtual scrolling for long lists
+Memoization for expensive calculations
+Code splitting for route-based components
+Caching
+Client-side caching for frequently accessed data
+Optimistic updates for better UX
+Background sync for offline capabilities
+Testing Requirements
+Unit Tests
+Component rendering tests
+State management tests
+API integration tests
+Integration Tests
+User workflow tests
+End-to-end scenarios
+Performance tests
+Deployment
+Build optimization
+Environment configuration
+CI/CD pipeline setup
+Docker containerization
+Additional Features
+Dark/Light theme toggle
+Multi-language support
+User preferences
+Keyboard shortcuts
+Export/Import functionality
