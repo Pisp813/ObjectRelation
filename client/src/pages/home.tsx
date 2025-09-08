@@ -5,7 +5,7 @@ import ContentArea from "@/components/ContentArea";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Home() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
 
   return (
@@ -23,7 +23,7 @@ export default function Home() {
         />
         
         <ContentArea 
-          className={`flex-1 ${!isMobile ? 'ml-1/4' : ''}`}
+          className={`flex-1 ${isSidebarOpen && !isMobile ? 'ml-1/4' : ''}`}
           data-testid="content-area"
         />
       </div>

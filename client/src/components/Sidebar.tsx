@@ -74,8 +74,7 @@ export default function Sidebar({ isOpen, onClose, className }: SidebarProps) {
       <aside 
         className={cn(
           "fixed left-0 top-16 bottom-0 w-1/4 min-w-80 bg-card border-r shadow-sm z-40 transition-transform duration-300",
-          "md:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full",
           className
         )}
         data-testid="sidebar"

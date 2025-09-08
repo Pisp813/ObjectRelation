@@ -36,16 +36,15 @@ export default function ContentArea({ className }: ContentAreaProps) {
       const response = await fetch('/api/reports/full');
       if (!response.ok) throw new Error('Failed to generate report');
       
-      const reportData = await response.json();
+      // Get the PDF blob
+      const pdfBlob = await response.blob();
       
       // Create downloadable file
-      const dataStr = JSON.stringify(reportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
+      const url = URL.createObjectURL(pdfBlob);
       
       const link = document.createElement('a');
       link.href = url;
-      link.download = `object-report-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `object-design-full-report-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -54,7 +53,7 @@ export default function ContentArea({ className }: ContentAreaProps) {
       
       toast({
         title: "Report Generated",
-        description: "Object report has been downloaded successfully."
+        description: "PDF report has been downloaded successfully."
       });
     } catch (error) {
       toast({

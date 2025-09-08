@@ -25,7 +25,6 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
             onClick={onToggleSidebar}
             data-testid="button-toggle-sidebar"
           >
