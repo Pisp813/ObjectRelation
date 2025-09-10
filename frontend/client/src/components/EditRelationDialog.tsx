@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -24,20 +23,6 @@ interface EditRelationDialogProps {
   relation: Relation | null;
   allObjects: ObjectType[];
 }
-
-const RELATION_TYPES = [
-  'associated_with',
-  'depends_on',
-  'contains',
-  'references',
-  'related_to',
-  'parent_of',
-  'child_of',
-  'similar_to',
-  'different_from',
-  'affects',
-  'affected_by'
-];
 
 export default function EditRelationDialog({
   isOpen,
@@ -107,10 +92,10 @@ export default function EditRelationDialog({
       return;
     }
 
-    if (!relationType) {
+    if (!relationType.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please select a relation type.",
+        description: "Please enter a relation type.",
         variant: "destructive"
       });
       return;
@@ -119,7 +104,7 @@ export default function EditRelationDialog({
     updateRelationMutation.mutate({
       id: relation.id,
       secondary_object_ids: selectedObjects,
-      relation_type: relationType,
+      relation_type: relationType.trim(),
       description: description || undefined
     });
   };
@@ -154,18 +139,13 @@ export default function EditRelationDialog({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="relation-type">Relation Type</Label>
-              <Select value={relationType} onValueChange={setRelationType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a relation type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RELATION_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace('_', ' ').toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="relation-type"
+                type="text"
+                placeholder="Enter relation type (e.g., associated_with, depends_on)"
+                value={relationType}
+                onChange={(e) => setRelationType(e.target.value)}
+              />
             </div>
 
             <div className="grid gap-2">
@@ -225,7 +205,7 @@ export default function EditRelationDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={updateRelationMutation.isPending || selectedObjects.length === 0 || !relationType}
+              disabled={updateRelationMutation.isPending || selectedObjects.length === 0 || !relationType.trim()}
             >
               {updateRelationMutation.isPending ? 'Updating...' : 'Update Relation'}
             </Button>
