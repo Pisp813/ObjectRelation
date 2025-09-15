@@ -6,11 +6,11 @@ import { Menu, Search, MessageCircle, BriefcaseBusiness, Settings } from 'lucide
 import AISearchDialog from './AISearchDialog';
 import { useObjectContext } from '@/contexts/ObjectContext';
 
-interface HeaderProps {
+interface AdminHeaderProps {
   onToggleSidebar: () => void;
 }
 
-export default function Header({ onToggleSidebar }: HeaderProps) {
+export default function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
   const [isAISearchOpen, setIsAISearchOpen] = useState(false);
   const { state, dispatch } = useObjectContext();
 
@@ -38,10 +38,10 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           
           <div className="flex items-center space-x-2">
             <Search className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-medium text-foreground">Object Explorer</h1>
+            <h1 className="text-xl font-medium text-foreground">Object Types</h1>
           </div>
           
-          <div className="flex items-center space-x-2 max-w-md flex-1">
+          {/* <div className="flex items-center space-x-2 max-w-md flex-1">
             <div className="flex-1 relative">
               <Input
                 type="text"
@@ -61,7 +61,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               <MessageCircle className="h-4 w-4 mr-2" />
               AIAsk
             </Button>
-          </div>
+          </div> */}
         </div>
         
         {/* Right Section */}

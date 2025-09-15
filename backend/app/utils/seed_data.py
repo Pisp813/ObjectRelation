@@ -88,6 +88,18 @@ def seed_database(db_service):
     """Seed the database with sample data"""
     print("Seeding database with sample data...")
     
+    # Create default admin user
+    try:
+        existing_admin = db_service.get_user_by_username('admin')
+        if not existing_admin:
+            admin_user = db_service.create_user({
+                "username": "admin",
+                "password": "admin123"  # In production, this should be hashed
+            })
+            print(f"Created default admin user: {admin_user.username}")
+    except Exception as e:
+        print(f"Warning: Could not create admin user: {e}")
+    
     # Create objects
     objects = []
     sample_objects = get_sample_objects()

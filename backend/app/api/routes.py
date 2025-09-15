@@ -13,11 +13,17 @@ from app.schemas.schemas import (
     Relation, RelationCreate, RelationUpdate,
     Hierarchy, HierarchyCreate, HierarchyUpdate,
     SearchRequest, SearchResponse,
-    ChatRequest, ChatResponse
+    ChatRequest, ChatResponse, TypesCreate, TypesUpdate, TypesBase,
+    RelationTypeCreate, RelationTypeBase, RelationTypeUpdate,
+    HierarchyTypeBase, HierarchyTypeCreate, HierarchyTypeUpdate,
 )
 from app.core.config import settings
+from app.api.auth import router as auth_router
 
 router = APIRouter()
+
+# Include auth routes
+router.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 # Initialize services
 ai_service = AIService(settings.openai_api_key) if settings.openai_api_key else None
@@ -27,6 +33,66 @@ report_service = ReportService()
 def get_database_service(db: Session = Depends(get_db)) -> DatabaseService:
     return DatabaseService(db)
 
+#Object Types endpoints
+@router.get("/object-types", response_model=List[TypesBase])
+async def get_object_types(db_service: DatabaseService = Depends(get_database_service)):
+    """Get all object types"""
+    return db_service.get_object_types()
+
+@router.get("/object-types/{type_id}", response_model=TypesBase)
+async def get_object_type(type_id: str, db_service: DatabaseService = Depends(get_database_service)):
+    """Get a specific object type by ID"""
+    try:
+        uuid_obj = uuid.UUID(type_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid type ID format")
+    
+    obj_type = db_service.get_object_type(uuid_obj)
+    if not obj_type:
+        raise HTTPException(status_code=404, detail="Object type not found")
+    return obj_type
+
+@router.get("/object-types/by-name/{type_name}", response_model=int)
+async def get_object_type_by_name(type_name: str, db_service: DatabaseService = Depends(get_database_service)):
+    """Get a specific object type by name"""
+    obj_type_id = db_service.get_object_type_by_name(type_name)
+    if not obj_type_id:
+        raise HTTPException(status_code=404, detail="Object type not found")
+    return obj_type_id
+
+@router.post("/object-types", response_model=TypesBase, status_code=201)
+async def create_object_type(type_data: TypesCreate, db_service: DatabaseService = Depends(get_database_service)):
+    """Create a new object type"""
+    return db_service.create_object_type(type_data)
+
+@router.put("/object-types/{type_id}", response_model=TypesBase)
+async def update_object_type(
+    type_id: int, 
+    type_data: TypesUpdate, 
+    db_service: DatabaseService = Depends(get_database_service)
+):
+    """Update an existing object type"""
+    try:
+        uuid_obj = type_id
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid type ID format")
+    
+    updated_type = db_service.update_object_type(uuid_obj, type_data)
+    if not updated_type:
+        raise HTTPException(status_code=404, detail="Object type not found")
+    return updated_type
+
+@router.delete("/object-types/{type_id}", status_code=204)
+async def delete_object_type(type_id: int, db_service: DatabaseService = Depends(get_database_service)):
+    """Delete an object type"""
+    try:
+        uuid_obj = type_id
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid type ID format")
+    
+    if not db_service.delete_object_type(uuid_obj):
+        raise HTTPException(status_code=404, detail="Object type not found")
+    
 # Objects endpoints
 @router.get("/objects", response_model=List[ObjectType])
 async def get_objects(db_service: DatabaseService = Depends(get_database_service)):
@@ -79,6 +145,45 @@ async def delete_object(object_id: str, db_service: DatabaseService = Depends(ge
     if not db_service.delete_object(uuid_obj):
         raise HTTPException(status_code=404, detail="Object not found")
 
+# Relation Types endpoints
+@router.get("/relation-types", response_model=List[RelationTypeBase])
+async def get_relation_types(db_service: DatabaseService = Depends(get_database_service)):
+    """Get all relation types"""
+    return db_service.get_relation_types()
+
+@router.get("/relation-types/{relation_type}", response_model=str)
+async def get_relation_type(relation_type: str, db_service: DatabaseService = Depends(get_database_service)):
+    """Get a specific relation type"""
+    if relation_type not in db_service.get_relation_types():
+        raise HTTPException(status_code=404, detail="Relation type not found")
+    return relation_type
+
+@router.post("/relation-types", response_model=RelationTypeBase, status_code=201)
+async def create_relation_type(relation_type_data: RelationTypeCreate, db_service: DatabaseService = Depends(get_database_service)):
+    """Create a new relation type"""
+    return db_service.create_relation_type(relation_type_data)
+
+@router.put("/relation-types/{relation_type_id}", response_model=RelationTypeBase)
+async def update_relation_type(
+    relation_type_id: int, 
+    relation_type_data: RelationTypeUpdate,
+    db_service: DatabaseService = Depends(get_database_service)
+):
+    updated = db_service.update_relation_type(relation_type_id, relation_type_data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="RelationType not found")
+    return updated
+
+@router.delete("/relation-types/{relation_type_id}", response_model=RelationTypeBase)
+async def delete_relation_type(
+    relation_type_id: int,
+    db_service: DatabaseService = Depends(get_database_service),
+):
+    deleted = db_service.delete_relation_type(relation_type_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="RelationType not found")
+    return deleted
+
 # Relations endpoints
 @router.get("/relations", response_model=List[Relation])
 async def get_relations(db_service: DatabaseService = Depends(get_database_service)):
@@ -126,6 +231,42 @@ async def delete_relation(relation_id: str, db_service: DatabaseService = Depend
     
     if not db_service.delete_relation(uuid_obj):
         raise HTTPException(status_code=404, detail="Relation not found")
+
+# Hierarchy Types endpoints
+@router.get("/hierarchy-types", response_model=List[HierarchyTypeBase])
+async def get_hierarchy_types(
+    db_service: DatabaseService = Depends(get_database_service)
+):
+    return db_service.get_hierarchy_types()
+
+@router.get("/hierarchy-types/{object_id}", response_model=HierarchyTypeBase)
+async def get_hierarchy_type_by_object(
+    object_id: int,
+    db_service: DatabaseService = Depends(get_database_service),
+):
+    hierarchy = db_service.get_hierarchy_type_by_object(object_id)
+    if not hierarchy:
+        raise HTTPException(status_code=404, detail="HierarchyType not found")
+    return hierarchy
+
+@router.post("/hierarchy-types", response_model=HierarchyTypeBase)
+async def create_hierarchy_type(
+    hierarchy_data: HierarchyTypeCreate,
+    db_service: DatabaseService = Depends(get_database_service),
+):
+    created = db_service.create_hierarchy_type(hierarchy_data)
+    return created
+
+@router.put("/hierarchy-types/{hierarchy_id}", response_model=HierarchyTypeBase)
+async def update_hierarchy_type(
+    hierarchy_id: int,
+    hierarchy_data: HierarchyTypeUpdate,
+    db_service: DatabaseService = Depends(get_database_service),
+):
+    updated = db_service.update_hierarchy_type(hierarchy_id, hierarchy_data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="HierarchyType not found")
+    return updated
 
 # Hierarchy endpoints
 @router.get("/hierarchies", response_model=List[Hierarchy])

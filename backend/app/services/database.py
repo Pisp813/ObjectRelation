@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from app.models.models import ObjectType, Relation, Hierarchy, ChatSession, User
+from app.models.models import ObjectType, Relation, Hierarchy, User, Types, RelationType, HierarchyType
 from app.schemas.schemas import (
     ObjectCreate, ObjectUpdate, RelationCreate, RelationUpdate,
-    HierarchyCreate, HierarchyUpdate, ChatSessionCreate
+    HierarchyCreate, HierarchyUpdate, ChatSessionCreate, TypesCreate, TypesUpdate,
+    RelationTypeBase, RelationTypeCreate, RelationTypeBase, RelationTypeUpdate,
+    HierarchyTypeBase, HierarchyTypeCreate, HierarchyTypeUpdate
 )
 import uuid
 from datetime import datetime
@@ -12,6 +14,48 @@ from datetime import datetime
 class DatabaseService:
     def __init__(self, db: Session):
         self.db = db
+
+    # ObjectType methods
+    def get_object_types(self) -> Optional[Types]:
+        return self.db.query(Types).all()
+    
+    def get_object_type(self, object_type_id: uuid.UUID) -> Optional[Types]:
+        return self.db.query(Types).filter(Types.id == object_type_id).first()
+    
+    def create_object_type(self, object_type_data: TypesCreate) -> Types:
+        db_object_type = Types(**object_type_data.model_dump())
+        self.db.add(db_object_type)
+        self.db.commit()
+        self.db.refresh(db_object_type)
+        return db_object_type
+    
+    def update_object_type(self, object_type_id: uuid.UUID, object_type_data: TypesUpdate) -> Optional[Types]:
+        db_object_type = self.get_object_type(object_type_id)
+        if not db_object_type:
+            return None
+        
+        update_data = object_type_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_object_type, field, value)
+        
+        # db_object_type.revision += 1
+        # db_object_type.modified_date = datetime.utcnow()
+        
+        self.db.commit()
+        self.db.refresh(db_object_type)
+        return db_object_type
+    
+    def get_object_type_by_name(self, type_name: str) -> Optional[Types]:
+        return self.db.query(Types).filter(Types.object_type == type_name).first().id
+    
+    def delete_object_type(self, object_type_id: uuid.UUID) -> bool:
+        db_object_type = self.get_object_type(object_type_id)
+        if not db_object_type:
+            return False
+        
+        self.db.delete(db_object_type)
+        self.db.commit()
+        return True
 
     # Object methods
     def get_objects(self) -> List[ObjectType]:
@@ -51,6 +95,42 @@ class DatabaseService:
         self.db.delete(db_object)
         self.db.commit()
         return True
+    
+    # RelationType methods
+    def get_relation_types(self) -> Optional[RelationType]:
+        return self.db.query(RelationType).all()
+    
+    def get_relation_type(self, relation_type_id: int) -> Optional[RelationType]:
+        return self.db.query(RelationType).filter(RelationType.id == relation_type_id).first()
+    
+    def create_relation_type(self, relation_type_data: RelationTypeCreate) -> RelationType:
+        db_relation_type = RelationType(**relation_type_data.model_dump())
+        self.db.add(db_relation_type)
+        self.db.commit()
+        self.db.refresh(db_relation_type)
+        return db_relation_type
+    
+    def update_relation_type(self, relation_type_id: int, relation_type_data: RelationTypeUpdate) -> Optional[RelationType]:
+        db_relation_type = self.get_relation_type(relation_type_id)
+        if not db_relation_type:
+            return None
+
+        update_data = relation_type_data.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_relation_type, key, value)
+
+        self.db.commit()
+        self.db.refresh(db_relation_type)
+        return db_relation_type
+    
+    def delete_relation_type(self, relation_type_id: int):
+        db_relation_type = self.get_relation_type(relation_type_id)
+        if not db_relation_type:
+            return None
+
+        self.db.delete(db_relation_type)
+        self.db.commit()
+        return db_relation_type
 
     # Relation methods
     def get_relations(self) -> List[Relation]:
@@ -125,6 +205,38 @@ class DatabaseService:
         self.db.delete(db_relation)
         self.db.commit()
         return True
+    
+    # HerearchyType methods
+
+    def get_hierarchy_types(self) -> List[HierarchyType]:
+        return self.db.query(HierarchyType).all()
+    
+    def get_hierarchy_type_by_object(self, object_id: int) -> Optional[HierarchyType]:
+        return self.db.query(HierarchyType).filter(HierarchyType.object_type == object_id).first()
+    
+    def create_hierarchy_type(self, hierarchy_data: HierarchyTypeCreate) -> HierarchyType:
+        db_hierarchy = HierarchyType(**hierarchy_data.dict())
+        self.db.add(db_hierarchy)
+        self.db.commit()
+        self.db.refresh(db_hierarchy)
+        return db_hierarchy
+
+    # def get_hierarchy_type(self, hierarchy_id: int):
+    #     return self.db.query(HierarchyType).filter(HierarchyType.id == hierarchy_id).first()
+
+    def update_hierarchy_type(self, hierarchy_id: int, hierarchy_data: HierarchyTypeUpdate):
+        db_hierarchy = self.get_hierarchy_type_by_object(hierarchy_id)
+        if not db_hierarchy:
+            return None
+
+        update_data = hierarchy_data.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_hierarchy, key, value)
+
+        self.db.commit()
+        self.db.refresh(db_hierarchy)
+        return db_hierarchy
+
 
     # Hierarchy methods
     def get_hierarchies(self) -> List[Hierarchy]:
@@ -170,30 +282,7 @@ class DatabaseService:
         self.db.commit()
         return True
 
-    # Chat methods
-    def get_chat_session(self, session_id: uuid.UUID) -> Optional[ChatSession]:
-        return self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
-
-    def create_chat_session(self, session_data: ChatSessionCreate) -> ChatSession:
-        db_session = ChatSession(**session_data.model_dump())
-        self.db.add(db_session)
-        self.db.commit()
-        self.db.refresh(db_session)
-        return db_session
-
-    def update_chat_session(self, session_id: uuid.UUID, session_data: ChatSessionCreate) -> Optional[ChatSession]:
-        db_session = self.get_chat_session(session_id)
-        if not db_session:
-            return None
-        
-        update_data = session_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_session, field, value)
-        
-        self.db.commit()
-        self.db.refresh(db_session)
-        return db_session
-
+ 
     # User methods
     def get_user(self, user_id: uuid.UUID) -> Optional[User]:
         return self.db.query(User).filter(User.id == user_id).first()

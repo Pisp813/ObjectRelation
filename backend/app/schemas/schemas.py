@@ -21,12 +21,31 @@ class User(UserBase):
 # Object schemas
 class TableColumn(BaseModel):
     name: str
-    type: str
+   
 
 class TableData(BaseModel):
     name: str
-    columns: List[TableColumn]
-    data: List[List[Any]]
+    columns: List[str]
+   
+
+class TypesBase(BaseModel):
+    id: Optional[int] = None
+    object_type: str
+    description: Optional[str] = None
+    parid: int
+    attributes: List[str]
+    tables: List[TableData] = []
+
+class TypesCreate(TypesBase):
+    pass
+    # id: Optional[int] = None  # Allow id to be optional for creation
+
+class TypesUpdate(BaseModel):
+    object_type: Optional[str] = None
+    description: Optional[str] = None
+    parid: Optional[int] = None
+    attributes: List[str] = None
+    tables: List[TableData] = None
 
 class ObjectBase(BaseModel):
     name: str
@@ -54,6 +73,22 @@ class ObjectType(ObjectBase):
     class Config:
         from_attributes = True
 
+# Relation Type schemas
+class RelationTypeBase(BaseModel):
+    id: Optional[int] = None
+    name: str
+    primary_type: int  # e.g., 'Item' | 'Document'
+    secondary_type: int  # e
+
+
+
+class RelationTypeCreate(RelationTypeBase):
+    pass
+    
+class RelationTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    primary_type: Optional[int] = None
+    secondary_type: Optional[int] = None
 
 # Relation schemas
 class RelationBase(BaseModel):
@@ -77,6 +112,24 @@ class Relation(RelationBase):
     class Config:
         from_attributes = True
 
+
+# Herearchy Type schemas
+
+class HierarchyTypeBase(BaseModel):
+    id: Optional[int] = None
+    object_type: Optional[int] = None
+    inventory: Optional[List[Any]] = None
+    purchase: Optional[List[Any]] = None
+
+class HierarchyTypeCreate(BaseModel):
+    object_type: Optional[int] = None
+    inventory: Optional[List[Any]] = None
+    purchase: Optional[List[Any]] = None
+
+class HierarchyTypeUpdate(BaseModel):
+    #object_type: Optional[int] = None
+    inventory: Optional[List[Any]] = None   # JSON array
+    purchase: Optional[List[Any]] = None    # JSON array
 
 # Hierarchy schemas
 class HierarchyBase(BaseModel):

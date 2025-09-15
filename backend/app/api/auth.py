@@ -1,124 +1,73 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from typing import Optional
-import jwt
-from passlib.context import CryptContext
-
+from pydantic import BaseModel
 from app.db.base import get_db
-from app.models.models import User
-from app.schemas.auth import LoginRequest, LoginResponse, TokenData
-from app.schemas.schemas import UserCreate, User
-from app.core.config import settings
+from app.services.database import DatabaseService
+from app.schemas.schemas import User
 
 router = APIRouter()
-security = HTTPBearer()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT settings
-SECRET_KEY = settings.secret_key or "your-secret-key-here"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Pydantic models for auth
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+class LoginResponse(BaseModel):
+    success: bool
+    message: str
+    user: User = None
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        return False
-    if not verify_password(password, user.password):
-        return False
-    return user
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except jwt.PyJWTError:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.username == token_data.username).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-@router.post("/register", response_model=User, status_code=201)
-async def register_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
-):
-    """Register a new user"""
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="Username already registered"
-        )
-    
-    # Create new user
-    hashed_password = get_password_hash(user_data.password)
-    db_user = User(
-        username=user_data.username,
-        password=hashed_password
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+# Dependency to get database service
+def get_database_service(db: Session = Depends(get_db)) -> DatabaseService:
+    return DatabaseService(db)
 
 @router.post("/login", response_model=LoginResponse)
-async def login(
-    login_data: LoginRequest,
-    db: Session = Depends(get_db)
-):
-    """Authenticate user and return JWT token"""
-    user = authenticate_user(db, login_data.username, login_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+async def login(login_data: LoginRequest, db_service: DatabaseService = Depends(get_database_service)):
+    """Authenticate user with username and password"""
+    try:
+        user = db_service.get_user_by_username(login_data.username)
+        
+        if not user:
+            return LoginResponse(
+                success=False,
+                message="User not found",
+                user=None
+            )
+        
+        if user.password != login_data.password:
+            return LoginResponse(
+                success=False,
+                message="Invalid password",
+                user=None
+            )
+        
+        return LoginResponse(
+            success=True,
+            message="Login successful",
+            user=user
         )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    
-    return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=user
-    )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
-@router.get("/me", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    """Get current user information"""
-    return current_user
+@router.post("/register", response_model=User)
+async def register(user_data: LoginRequest, db_service: DatabaseService = Depends(get_database_service)):
+    """Register a new user"""
+    try:
+        # Check if user already exists
+        existing_user = db_service.get_user_by_username(user_data.username)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        
+        # Create new user
+        new_user = db_service.create_user({
+            "username": user_data.username,
+            "password": user_data.password  # Note: In production, you should hash passwords
+        })
+        
+        return new_user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")

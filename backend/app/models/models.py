@@ -22,6 +22,15 @@ relation_secondary_objects = Table(
     Column('object_id', UUID(as_uuid=True), ForeignKey('objects.id'), primary_key=True)
 )
 
+class Types(Base):
+    __tablename__ = "object_types"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    object_type = Column(String, unique=True, nullable=False)  
+    parid = Column(Integer, nullable=False)
+    attributes = Column(JSON, default={})
+    tables = Column(JSON, default=[])
+    description = Column(Text, nullable=False)
 
 class ObjectType(Base):
     __tablename__ = "objects"
@@ -44,6 +53,13 @@ class ObjectType(Base):
                                      secondary=relation_secondary_objects,
                                      back_populates="secondary_objects")
 
+class RelationType(Base):
+    __tablename__ = "relation_types"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    primary_type = Column(Integer, nullable=False)  # e.g., 'Item' | 'Document'
+    secondary_type = Column(Integer, nullable=False)  # e.g., 'Item' |
 
 class Relation(Base):
     __tablename__ = "relations"
@@ -65,6 +81,16 @@ class Relation(Base):
                                    back_populates="secondary_relations")
 
 
+class HierarchyType(Base):
+    __tablename__ = "hierarchy_type"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    object_type = Column(Integer, nullable=True)
+    inventory = Column(JSON, nullable=True)
+    purchase = Column(JSON, nullable=True)
+
+    
+
 class Hierarchy(Base):
     __tablename__ = "hierarchies"
     
@@ -73,11 +99,3 @@ class Hierarchy(Base):
     child_object_ids = Column(JSON, default=[])
     level = Column(Integer, default=0)
     properties = Column(JSON, default={})
-
-
-class ChatSession(Base):
-    __tablename__ = "chat_sessions"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    messages = Column(JSON, default=[])
-    created_date = Column(TIMESTAMP, server_default=func.now())
